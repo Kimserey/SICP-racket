@@ -25,6 +25,8 @@
           (begin-actions exp))]
         [(cond? exp)
          (analyze (cond->if exp))]
+        [(amb? exp)
+         (analyze-amb exp)]
         [(application? exp)
          (analyze-application exp)]
         [else
@@ -380,7 +382,16 @@
 ; (driver-loop)
 
 ; ***********************************************************************************************
+; amb
 
+(define (amb? exp) (tagged-list? exp 'amb))
+
+(define (amb-choices exp) (cdr exp))
+
+(define (ambeval exp env succeed fail)
+  ((analyze exp) env succeed fail))
+
+; ***********************************************************************************************
 (define (require p)
   (if (not p) (amb)))
 
