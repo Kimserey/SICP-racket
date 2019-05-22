@@ -25,10 +25,10 @@
         [(let? exp)
          (apply-local
           (make-procedure
-           (let-variables (let-parameters exp))
+           (let-variables exp)
            (let-body exp)
            env)
-          (let-values (let-parameters exp)))]
+          (let-values exp))]
         [(begin? exp)
          (eval-sequence
           (begin-actions exp)
@@ -163,14 +163,11 @@
 (define (let? exp)
   (tagged-list? exp 'let))
 
-(define (let-parameters exp)
-  (cadr exp))
+(define (let-variables exp)
+  (map car (cadr exp)))
 
-(define (let-variables parameters)
-  (map car parameters))
-
-(define (let-values parameters)
-  (map cadr parameters))
+(define (let-values exp)
+  (map cadr (cadr exp)))
 
 (define (let-body exp)
   (cddr exp))
