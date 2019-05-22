@@ -24,6 +24,8 @@
           (begin-actions exp))]
         [(cond? exp)
          (analyze (cond->if exp))]
+        [(let? exp)
+         (analyze-let exp)]
         [(application? exp)
          (analyze-application exp)]
         [else
@@ -67,6 +69,15 @@
         [bproc (lambda-body exp)])
     (lambda (env)
       (make-procedure vars bproc env))))
+
+(define (analyze-let exp)
+  (let ([vars (let-variables exp)]
+        [vals (let-values exp)]
+        [bproc (let-body exp)])
+    (lambda (env)
+      (execute-application
+       (make-procedure vars bproc env)
+       vals))))
 
 (define (analyze-sequence exp)
   (define (sequentially proc1 proc2)
@@ -146,6 +157,19 @@
       (make-lambda
        (cdadr exp)
        (cddr exp))))
+
+; Let
+(define (let? exp)
+  (tagged-list? exp 'let))
+
+(define (let-variables exp)
+  (map car (cadr exp)))
+
+(define (let-values exp)
+  (map cadr (cadr exp)))
+
+(define (let-body exp)
+  (cddr exp))
 
 ; Lambdas
 (define (lambda? exp)

@@ -35,3 +35,4 @@ TAGS
 
 # coredumps
 *.core
+*.1
