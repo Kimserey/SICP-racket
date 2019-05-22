@@ -25,6 +25,8 @@
           (begin-actions exp))]
         [(cond? exp)
          (analyze (cond->if exp))]
+        [(let? exp)
+         (analyze-let exp)]
         [(amb? exp)
          (analyze-amb exp)]
         [(application? exp)
@@ -82,6 +84,17 @@
     (lambda (env succeed fail)
       (succeed (make-procedure vars bproc env)
                fail))))
+
+(define (analyze-let exp)
+  (let ([vars (let-variables exp)]
+        [vals (let-values exp)]
+        [bproc (let-body exp)])
+    (lambda (env succeed fail)
+      (execute-application
+       (make-procedure vars bproc env)
+       vals
+       succeed
+       fail))))
 
 (define (analyze-sequence exp)
   (define (sequentially a b)
@@ -194,6 +207,18 @@
 
 (define (make-lambda parameters body)
   (cons 'lambda (cons parameters body)))
+
+(define (let? exp)
+  (tagged-list? exp 'let))
+
+(define (let-variables exp)
+  (map car (cadr exp)))
+
+(define (let-values exp)
+  (map cadr (cadr exp)))
+
+(define (let-body exp)
+  (cddr exp))
 
 (define (if? exp) (tagged-list? exp 'if))
 
@@ -362,6 +387,13 @@
 (define (primitive-implementation proc)
   (cadr proc))
 
+(define (distinct? xs)
+  (define (loop xs res)
+    (cond [(null? xs) (and res true)]
+          [(not (memq (car xs) (cdr xs))) (loop (cdr xs) true)]
+          [else false]))
+  (loop xs true))
+
 (define primitive-procedures
   (list (list 'car car)
         (list 'cdr cdr)
@@ -370,7 +402,15 @@
         (list '+ +)
         (list '- -)
         (list '/ /)
-        (list '* *)))
+        (list '* *)
+        (list 'list list)
+        (list 'cons cons)
+        (list '> >)
+        (list '< <)
+        (list 'distinct? distinct?)
+        (list 'abs abs)
+        (list 'not not)
+        (list '= =)))
 
 (define (primitive-procedure-names)
   (map car primitive-procedures))

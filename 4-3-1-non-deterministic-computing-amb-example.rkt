@@ -2,13 +2,13 @@
 
 
 ; ***********************************************************************************************
-(define (require p)
-  (if (not p) (amb) #f))
-
 (define (an-element-of items)
   (require (not (null? items)))
   (amb (car items)
        (an-element-of (cdr items))))
+
+(define (require p)
+  (if (not p) (amb)))
 
 ; Baker, Cooper, Fletcher, Miller, and Smith live on different floors of an apartment house
 ; that contains only five floors.
