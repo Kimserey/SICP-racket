@@ -22,6 +22,13 @@
           (lambda-parameters exp)
           (lambda-body exp)
           env)]
+        [(let? exp)
+         (apply-local
+          (make-procedure
+           (let-variables (let-parameters exp))
+           (let-body exp)
+           env)
+          (let-values (let-parameters exp)))]
         [(begin? exp)
          (eval-sequence
           (begin-actions exp)
@@ -151,6 +158,22 @@
 
 (define (make-lambda parameters body)
   (cons 'lambda (cons parameters body)))
+
+; Let
+(define (let? exp)
+  (tagged-list? exp 'let))
+
+(define (let-parameters exp)
+  (cadr exp))
+
+(define (let-variables parameters)
+  (map car parameters))
+
+(define (let-values parameters)
+  (map cadr parameters))
+
+(define (let-body exp)
+  (cddr exp))
 
 ; Conditionals
 (define (if? exp) (tagged-list? exp 'if))
