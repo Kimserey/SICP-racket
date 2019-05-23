@@ -1,4 +1,5 @@
 #lang racket
+(require compatibility/mlist)
 
 ; ***********************************************************************************************
 ; Evaluator - Analyze/Execute
@@ -87,7 +88,7 @@
 
 (define (analyze-let exp)
   (let ([vars (let-variables exp)]
-        [vals (map analyze (let-values exp))]
+        [vals (mmap analyze (let-values exp))]
         [bproc (let-body exp)])
     (lambda (env succeed fail)
       (get-args
@@ -111,16 +112,16 @@
   (define (loop first-proc rest-procs)
     (if (null? rest-procs)
         first-proc
-        (loop (sequentially first-proc (car rest-procs))
-              (cdr rest-procs))))
-  (let ([procs (map analyze exp)])
+        (loop (sequentially first-proc (mcar rest-procs))
+              (mcdr rest-procs))))
+  (let ([procs (mmap analyze exp)])
     (if (null? procs)
         (error "Empty sequence: ANALYZE")
-        (loop (car procs) (cdr procs)))))
+        (loop (mcar procs) (mcdr procs)))))
 
 (define (analyze-application exp)
   (let ([fproc (analyze (operator exp))]
-        [aprocs (map analyze (operands exp))])
+        [aprocs (mmap analyze (operands exp))])
     (lambda (env succeed fail)
       (fproc env
              (lambda (proc fail2)
@@ -133,14 +134,14 @@
 (define (get-args args env succeed fail)
   (if (null? args)
       (succeed '() fail)
-      ((car args)
+      ((mcar args)
        env
        (lambda (arg fail2)
          (get-args
-          (cdr args)
+          (mcdr args)
           env
           (lambda (args fail3)
-            (succeed (cons arg args)
+            (succeed (mcons arg args)
                      fail3))
           fail2))
        fail)))
@@ -167,121 +168,121 @@
   (symbol? exp))
 
 (define (tagged-list? exp tag)
-  (if (pair? exp)
-      (eq? (car exp) tag)
+  (if (mpair? exp)
+      (eq? (mcar exp) tag)
       false))
 
 (define (quoted? exp)
   (tagged-list? exp 'quote))
 
 (define (text-of-quotation exp)
-  (cadr exp))
+  (mcar (mcdr exp)))
 
 (define (assignment? exp)
   (tagged-list? exp 'set!))
 
 (define (assignment-variable exp)
-  (cadr exp))
+  (mcar (mcdr exp)))
 
 (define (assignment-value exp)
-  (caddr exp))
+  (mcar (mcdr (mcdr exp))))
 
 (define (definition? exp)
   (tagged-list? exp 'define))
 
 (define (definition-variable exp)
-  (if (symbol? (cadr exp))
-      (cadr exp)
-      (caadr exp)))
+  (if (symbol? (mcar (mcdr exp)))
+      (mcar (mcdr exp))
+      (mcar (mcar (mcdr exp)))))
 
 (define (definition-value exp)
-  (if (symbol? (cadr exp))
-      (caddr exp)
+  (if (symbol? (mcar (mcdr exp)))
+      (mcar (mcdr (mcdr exp)))
       (make-lambda
-       (cdadr exp)
-       (cddr exp))))
+       (mcdr (mcar (mcdr exp)))
+       (mcdr (mcdr exp)))))
 
 (define (lambda? exp)
   (tagged-list? exp 'lambda))
 
 (define (lambda-parameters exp)
-  (cadr exp))
+  (mcar (mcdr exp)))
 
 (define (lambda-body exp)
-  (cddr exp))
+  (mcdr (mcdr exp)))
 
 (define (make-lambda parameters body)
-  (cons 'lambda (cons parameters body)))
+  (mcons 'lambda (mcons parameters body)))
 
 (define (let? exp)
   (tagged-list? exp 'let))
 
 (define (let-variables exp)
-  (map car (cadr exp)))
+  (mmap mcar (mcar (mcdr exp))))
 
 (define (let-values exp)
-  (map cadr (cadr exp)))
+  (mmap (lambda (val) (mcar (mcdr val))) (mcar (mcdr exp))))
 
 (define (let-body exp)
-  (cddr exp))
+  (mcdr (mcdr exp)))
 
 (define (if? exp) (tagged-list? exp 'if))
 
-(define (if-predicate exp) (cadr exp))
+(define (if-predicate exp) (mcar (mcdr exp)))
 
-(define (if-consequent exp) (caddr exp))
+(define (if-consequent exp) (mcar (mcdr (mcdr exp))))
 
 (define (if-alternative exp)
-  (if (not (null? (cdddr exp)))
-      (cadddr exp)
+  (if (not (null? (mcdr (mcdr (mcdr exp)))))
+      (mcar (mcdr (mcdr (mcdr exp))))
       'false))
 
 (define (make-if predicate consequent alternative)
-  (list 'if predicate consequent alternative))
+  (mlist 'if predicate consequent alternative))
 
 (define (begin? exp)
   (tagged-list? exp 'begin))
 
-(define (begin-actions exp) (cdr exp))
+(define (begin-actions exp) (mcdr exp))
 
-(define (last-exp? seq) (null? (cdr seq)))
+(define (last-exp? seq) (null? (mcdr seq)))
 
-(define (first-exp seq) (car seq))
+(define (first-exp seq) (mcar seq))
 
-(define (rest-exps seq) (cdr seq))
+(define (rest-exps seq) (mcdr seq))
 
 (define (sequence->exp seq)
   (cond [(null? seq) seq]
         [(last-exp? seq) (first-exp seq)]
         [else (make-begin seq)]))
 
-(define (make-begin seq) (cons 'begin seq))
+(define (make-begin seq) (mcons 'begin seq))
 
-(define (application? exp) (pair? exp))
+(define (application? exp) (mpair? exp))
 
-(define (operator exp) (car exp))
+(define (operator exp) (mcar exp))
 
-(define (operands exp) (cdr exp))
+(define (operands exp) (mcdr exp))
 
 (define (no-operands? ops) (null? ops))
 
-(define (first-operand ops) (car ops))
+(define (first-operand ops) (mcar ops))
 
-(define (rest-operands ops) (cdr ops))
+(define (rest-operands ops) (mcdr ops))
 
 (define (cond? exp)
   (tagged-list? exp 'cond))
 
-(define (cond-clauses exp) (cdr exp))
+(define (cond-clauses exp) (mcdr exp))
 
 (define (cond-else-clause? clause)
   (eq? (cond-predicate clause) 'else))
 
 (define (cond-predicate clause)
-  (car clause))
+  (mcar clause))
 
 (define (cond-actions clause)
-  (cdr clause))
+  (mcdr clause))
 
 (define (cond->if exp)
   (expand-clauses (cond-clauses exp)))
@@ -289,8 +290,8 @@
 (define (expand-clauses clauses)
   (if (null? clauses)
       'false ;no else clause
-      (let ([first (car clauses)]
-            [rest (cdr clauses)])
+      (let ([first (mcar clauses)]
+            [rest (mcdr clauses)])
         (if (cond-else-clause? first)
             (if (null? rest)
                 (sequence->exp (cond-actions first))
@@ -303,20 +304,20 @@
   (not (eq? x false)))
 
 (define (make-procedure parameters body env)
-  (list 'procedure parameters body env))
+  (mlist 'procedure parameters body env))
 
 (define (compound-procedure? p)
   (tagged-list? p 'procedure))
 
-(define (procedure-parameters p) (cadr p))
+(define (procedure-parameters p) (mcar (mcdr p)))
 
-(define (procedure-body p) (caddr p))
+(define (procedure-body p) (mcar (mcdr (mcdr p))))
 
-(define (procedure-environment p) (cadddr p))
+(define (procedure-environment p) (mcar (mcdr (mcdr (mcdr p)))))
 
-(define (enclosing-environment env) (cdr env))
+(define (enclosing-environment env) (mcdr env))
 
-(define (first-frame env) (car env))
+(define (first-frame env) (mcar env))
 
 (define the-empty-environment 'the-empty-environment)
 
@@ -328,13 +329,13 @@
 (define (frame-values frame) (mcdr frame))
 
 (define (add-binding-to-frame! var val frame)
-  (set-mcar! frame (cons var (frame-variables frame)))
-  (set-mcdr! frame (cons val (frame-values frame))))
+  (set-mcar! frame (mcons var (frame-variables frame)))
+  (set-mcdr! frame (mcons val (frame-values frame))))
 
 (define (extend-environment vars vals base-env)
-  (if (= (length vars) (length vals))
-      (cons (make-frame vars vals) base-env)
-      (if (< (length vars) (length vals))
+  (if (= (mlength vars) (mlength vals))
+      (mcons (make-frame vars vals) base-env)
+      (if (< (mlength vars) (mlength vals))
           (error "Too many arguments supplied"
                  vars
                  vals)
@@ -346,8 +347,8 @@
   (define (env-loop env)
     (define (scan vars vals)
       (cond [(null? vars) (env-loop (enclosing-environment env))]
-            [(eq? var (car vars))(car vals)]
-            [else (scan (cdr vars) (cdr vals))]))
+            [(eq? var (mcar vars))(mcar vals)]
+            [else (scan (mcdr vars) (mcdr vals))]))
     (if (eq? env the-empty-environment)
         (error "Unbound variable" var)
         (let ([frame (first-frame env)])
@@ -359,8 +360,8 @@
   (define (env-loop env)
     (define (scan vars vals)
       (cond [(null? vars) (env-loop (enclosing-environment env))]
-            [(eq? var (car vars)) (set-mcar! vals val)]
-            [else (scan (cdr vars) (cdr vals))]))
+            [(eq? var (mcar vars)) (set-mcar! vals val)]
+            [else (scan (mcdr vars) (mcdr vals))]))
     (if (eq? env the-empty-environment)
         (error "Unbound variable: SET!" var)
         (let ([frame (first-frame env)])
@@ -372,8 +373,8 @@
   (let ([frame (first-frame env)])
     (define (scan vars vals)
       (cond [(null? vars) (add-binding-to-frame! var val frame)]
-            [(eq? var (car vars)) (set-mcar! vals val)]
-            [else (scan (cdr vars) (cdr vals))]))
+            [(eq? var (mcar vars)) (set-mcar! vals val)]
+            [else (scan (mcdr vars) (mcdr vals))]))
     (scan (frame-variables frame)
           (frame-values frame))))
 
@@ -390,7 +391,7 @@
   (tagged-list? proc 'primitive))
 
 (define (primitive-implementation proc)
-  (cadr proc))
+  (mcdr proc))
 
 (define (distinct? xs)
   (define (loop xs res)
@@ -400,39 +401,49 @@
   (loop xs true))
 
 (define primitive-procedures
-  (list (list 'car car)
-        (list 'cdr cdr)
-        (list 'cons cons)
-        (list 'null? null?)
-        (list '+ +)
-        (list '- -)
-        (list '/ /)
-        (list '* *)
-        (list 'list list)
-        (list 'cons cons)
-        (list '> >)
-        (list '< <)
-        (list 'distinct? distinct?)
-        (list 'abs abs)
-        (list 'not not)
-        (list '= =)))
+  (mlist
+   (mcons 'car car)
+   (mcons 'cdr cdr)
+   (mcons 'cons cons)
+   (mcons 'null? null?)
+   (mcons '+ +)
+   (mcons '- -)
+   (mcons '/ /)
+   (mcons '* *)
+   (mcons 'list list)
+   (mcons 'cons cons)
+   (mcons '> >)
+   (mcons '< <)
+   (mcons 'distinct? distinct?)
+   (mcons 'abs abs)
+   (mcons 'not not)
+   (mcons '= =)
+   (mcons 'memq memq)))
 
 (define (primitive-procedure-names)
-  (map car primitive-procedures))
+  (mmap mcar primitive-procedures))
 
 (define (primitive-procedure-objects)
-  (map (lambda (proc)
-         (list 'primitive (cadr proc)))
-       primitive-procedures))
+  (mmap (lambda (proc)
+          (mcons 'primitive (mcdr proc)))
+        primitive-procedures))
 
 (define (apply-primitive-procedure proc args)
-  (apply (primitive-implementation proc) args))
+  (apply (primitive-implementation proc) (mlist->list args)))
 
 (define the-global-environment (setup-environment))
 
 (define input-prompt ";;; Amb-Eval input:")
 
 (define output-prompt ";;; Amb-Eval value:")
+
+(define (list->mlist/deep input)
+  (mmap
+   (lambda (value)
+     (if (pair? value)
+         (list->mlist/deep value)
+         value))
+   (list->mlist input)))
 
 (define (driver-loop)
   (define (internal-loop try-again)
@@ -445,7 +456,7 @@
             (display
              ";;; Starting new problem")
             (ambeval
-             input
+             (if (pair? input) (list->mlist/deep input) input)
              the-global-environment
              (lambda (val next-alternative)
                (announce-output output-prompt)
@@ -487,22 +498,22 @@
 
 (define (amb? exp) (tagged-list? exp 'amb))
 
-(define (amb-choices exp) (cdr exp))
+(define (amb-choices exp) (mcdr exp))
 
 (define (ambeval exp env succeed fail)
   ((analyze exp) env succeed fail))
 
 (define (analyze-amb exp)
-  (let ([cprocs (map analyze (amb-choices exp))])
+  (let ([cprocs (mmap analyze (amb-choices exp))])
     (lambda (env succeed fail)
       (define (try-next choices)
         (if (null? choices)
             (fail)
-            ((car choices)
+            ((mcar choices)
              env
              succeed
              (lambda ()
-               (try-next (cdr choices))))))
+               (try-next (mcdr choices))))))
       (try-next cprocs))))
 
 (driver-loop)
