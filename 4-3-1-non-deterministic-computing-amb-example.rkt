@@ -31,7 +31,7 @@
     (require (not (= fletcher 5)))
     (require (not (= fletcher 1)))
     (require (> miller cooper))
-    (require (not (= (abs (- smith flether)) 1)))
+    (require (not (= (abs (- smith fletcher)) 1)))
     (require (not (= (abs (- fletcher cooper)) 1)))
 
     (list (cons 'baker baker)
@@ -95,7 +95,7 @@
 (define *unparsed* '()) ; global variable holding all unparsed words
 
 (define (parse input)
-  (set! *unparsed input)
+  (set! *unparsed* input)
   (let ([sent (parse-sentence)])
     (require (null? *unparsed*))
     sent))

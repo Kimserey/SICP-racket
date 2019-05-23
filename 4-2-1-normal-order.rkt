@@ -433,7 +433,10 @@
 (define (driver-loop)
   (prompt-for-input input-prompt)
   (let ([input (read)])
-    (let ([output (actual-value (list->mlist/deep input) the-global-environment)])
+    (let ([output
+           (actual-value
+            (if (pair? input) (list->mlist/deep input) input)
+            the-global-environment)])
       (announce-output output-prompt)
       (user-print output)))
   (driver-loop))
