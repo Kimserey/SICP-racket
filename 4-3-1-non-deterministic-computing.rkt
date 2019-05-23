@@ -42,6 +42,7 @@
     (lambda (env succeed fail) (succeed qval fail))))
 
 (define (analyze-variable exp)
+  (displayln exp)
   (lambda (env succeed fail)
     (succeed (lookup-variable-value exp env)
              fail)))
@@ -88,7 +89,7 @@
 
 (define (analyze-let exp)
   (let ([vars (let-variables exp)]
-        [vals (map analyze (let-values exp))]
+        [vals (mmap analyze (let-values exp))]
         [bproc (let-body exp)])
     (lambda (env succeed fail)
       (get-args
@@ -112,12 +113,12 @@
   (define (loop first-proc rest-procs)
     (if (null? rest-procs)
         first-proc
-        (loop (sequentially first-proc (car rest-procs))
-              (cdr rest-procs))))
+        (loop (sequentially first-proc (mcar rest-procs))
+              (mcdr rest-procs))))
   (let ([procs (mmap analyze exp)])
     (if (null? procs)
         (error "Empty sequence: ANALYZE")
-        (loop (car procs) (cdr procs)))))
+        (loop (mcar procs) (mcdr procs)))))
 
 (define (analyze-application exp)
   (let ([fproc (analyze (operator exp))]
@@ -134,14 +135,14 @@
 (define (get-args args env succeed fail)
   (if (null? args)
       (succeed '() fail)
-      ((car args)
+      ((mcar args)
        env
        (lambda (arg fail2)
          (get-args
-          (cdr args)
+          (mcdr args)
           env
           (lambda (args fail3)
-            (succeed (cons arg args)
+            (succeed (mcons arg args)
                      fail3))
           fail2))
        fail)))
@@ -168,7 +169,7 @@
   (symbol? exp))
 
 (define (tagged-list? exp tag)
-  (if (pair? exp)
+  (if (mpair? exp)
       (eq? (mcar exp) tag)
       false))
 
@@ -218,10 +219,10 @@
   (tagged-list? exp 'let))
 
 (define (let-variables exp)
-  (mmap car (cadr exp)))
+  (mmap mcar (mcar (mcdr exp))))
 
 (define (let-values exp)
-  (mmap cadr (cadr exp)))
+  (mmap (lambda (val) (mcar (mcdr val))) (mcar (mcdr exp))))
 
 (define (let-body exp)
   (mcdr (mcdr exp)))
@@ -304,7 +305,7 @@
   (not (eq? x false)))
 
 (define (make-procedure parameters body env)
-  (list 'procedure parameters body env))
+  (mlist 'procedure parameters body env))
 
 (define (compound-procedure? p)
   (tagged-list? p 'procedure))
@@ -396,7 +397,7 @@
 (define (distinct? xs)
   (define (loop xs res)
     (cond [(null? xs) (and res true)]
-          [(not (memq (mcar xs) (mcdr xs))) (loop (mcdr xs) true)]
+          [(not (memq (car xs) (cdr xs))) (loop (cdr xs) true)]
           [else false]))
   (loop xs true))
 
@@ -428,7 +429,7 @@
         primitive-procedures))
 
 (define (apply-primitive-procedure proc args)
-  (apply (primitive-implementation proc) args))
+  (apply (primitive-implementation proc) (mlist->list args)))
 
 (define the-global-environment (setup-environment))
 
@@ -497,22 +498,22 @@
 
 (define (amb? exp) (tagged-list? exp 'amb))
 
-(define (amb-choices exp) (cdr exp))
+(define (amb-choices exp) (mcdr exp))
 
 (define (ambeval exp env succeed fail)
   ((analyze exp) env succeed fail))
 
 (define (analyze-amb exp)
-  (let ([cprocs (map analyze (amb-choices exp))])
+  (let ([cprocs (mmap analyze (amb-choices exp))])
     (lambda (env succeed fail)
       (define (try-next choices)
         (if (null? choices)
             (fail)
-            ((car choices)
+            ((mcar choices)
              env
              succeed
              (lambda ()
-               (try-next (cdr choices))))))
+               (try-next (mcdr choices))))))
       (try-next cprocs))))
 
 (driver-loop)
