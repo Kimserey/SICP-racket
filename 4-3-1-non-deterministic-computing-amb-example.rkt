@@ -1,7 +1,8 @@
 #lang racket
 
+; Non compiling examples,
+; Copy them into the input from 4-3-1-non-deterministic-computing-amb.rkt evaluator
 
-; ***********************************************************************************************
 (define (an-element-of items)
   (require (not (null? items)))
   (amb (car items)
