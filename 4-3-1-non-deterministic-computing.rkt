@@ -35,6 +35,9 @@
         [else
          (error "Unknown expression type: ANALYZE" exp)]))
 
+(define (ambeval exp env succeed fail)
+  ((analyze exp) env succeed fail))
+
 (define (analyze-self-evaluating exp) (lambda (env succeed fail) (succeed exp fail)))
 
 (define (analyze-quoted exp)
@@ -145,6 +148,19 @@
                      fail3))
           fail2))
        fail)))
+
+(define (analyze-amb exp)
+  (let ([cprocs (mmap analyze (amb-choices exp))])
+    (lambda (env succeed fail)
+      (define (try-next choices)
+        (if (null? choices)
+            (fail)
+            ((mcar choices)
+             env
+             succeed
+             (lambda ()
+               (try-next (mcdr choices))))))
+      (try-next cprocs))))
 
 (define (execute-application proc args succeed fail)
   (cond [(primitive-procedure? proc)
@@ -306,6 +322,10 @@
 (define (make-procedure parameters body env)
   (mlist 'procedure parameters body env))
 
+(define (amb? exp) (tagged-list? exp 'amb))
+
+(define (amb-choices exp) (mcdr exp))
+
 (define (compound-procedure? p)
   (tagged-list? p 'procedure))
 
@@ -429,13 +449,21 @@
         primitive-procedures))
 
 (define (apply-primitive-procedure proc args)
-  (apply (primitive-implementation proc) (mlist->list args)))
+  (apply (primitive-implementation proc) (mlist->list/deep args)))
 
 (define the-global-environment (setup-environment))
 
 (define input-prompt ";;; Amb-Eval input:")
 
 (define output-prompt ";;; Amb-Eval value:")
+
+(define (mlist->list/deep input)
+  (map
+   (lambda (value)
+     (if (mpair? value)
+         (mlist->list/deep value)
+         value))
+   (mlist->list input)))
 
 (define (list->mlist/deep input)
   (mmap
@@ -492,28 +520,5 @@
              (procedure-body object)
              '<procedure-env>))
       (display object)))
-
-; ***********************************************************************************************
-; amb
-
-(define (amb? exp) (tagged-list? exp 'amb))
-
-(define (amb-choices exp) (mcdr exp))
-
-(define (ambeval exp env succeed fail)
-  ((analyze exp) env succeed fail))
-
-(define (analyze-amb exp)
-  (let ([cprocs (mmap analyze (amb-choices exp))])
-    (lambda (env succeed fail)
-      (define (try-next choices)
-        (if (null? choices)
-            (fail)
-            ((mcar choices)
-             env
-             succeed
-             (lambda ()
-               (try-next (mcdr choices))))))
-      (try-next cprocs))))
 
 (driver-loop)
