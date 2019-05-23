@@ -28,7 +28,9 @@
            (let-variables exp)
            (let-body exp)
            env)
-          (let-values exp))]
+          (list-of-values
+           (let-values exp)
+           env))]
         [(begin? exp)
          (eval-sequence
           (begin-actions exp)
@@ -372,7 +374,8 @@
         (list '+ +)
         (list '- -)
         (list '/ /)
-        (list '* *)))
+        (list '* *)
+        (list '= =)))
 
 (define (primitive-procedure-names)
   (map car primitive-procedures))
