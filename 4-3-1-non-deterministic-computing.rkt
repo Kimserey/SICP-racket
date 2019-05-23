@@ -42,7 +42,6 @@
     (lambda (env succeed fail) (succeed qval fail))))
 
 (define (analyze-variable exp)
-  (displayln exp)
   (lambda (env succeed fail)
     (succeed (lookup-variable-value exp env)
              fail)))
@@ -418,7 +417,8 @@
    (mcons 'distinct? distinct?)
    (mcons 'abs abs)
    (mcons 'not not)
-   (mcons '= =)))
+   (mcons '= =)
+   (mcons 'memq memq)))
 
 (define (primitive-procedure-names)
   (mmap mcar primitive-procedures))
