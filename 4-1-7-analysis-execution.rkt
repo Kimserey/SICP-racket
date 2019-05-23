@@ -72,12 +72,12 @@
 
 (define (analyze-let exp)
   (let ([vars (let-variables exp)]
-        [vals (let-values exp)]
+        [vals (map analyze (let-values exp))]
         [bproc (let-body exp)])
     (lambda (env)
       (execute-application
        (make-procedure vars bproc env)
-       vals))))
+       (map (lambda (val) (val env)) vals)))))
 
 (define (analyze-sequence exp)
   (define (sequentially proc1 proc2)
@@ -93,10 +93,10 @@
         (loop (car procs) (cdr procs)))))
 
 (define (analyze-application exp)
-  (let ([fproc (analyze (operator exp))]
-        [aprocs (map analyze (operands exp))])
+  (let ([proc (analyze (operator exp))]
+        [args (map analyze (operands exp))])
     (lambda (env)
-      (execute-application (fproc env) (map (lambda (aproc) (aproc env)) aprocs)))))
+      (execute-application (proc env) (map (lambda (arg) (arg env)) args)))))
 
 (define (execute-application proc args)
   (cond [(primitive-procedure? proc)

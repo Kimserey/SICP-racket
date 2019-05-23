@@ -87,13 +87,18 @@
 
 (define (analyze-let exp)
   (let ([vars (let-variables exp)]
-        [vals (let-values exp)]
+        [vals (map analyze (let-values exp))]
         [bproc (let-body exp)])
     (lambda (env succeed fail)
-      (execute-application
-       (make-procedure vars bproc env)
+      (get-args
        vals
-       succeed
+       env
+       (lambda (args fail2)
+         (execute-application
+          (make-procedure vars bproc env)
+          args
+          succeed
+          fail2))
        fail))))
 
 (define (analyze-sequence exp)
@@ -125,14 +130,14 @@
                          fail2))
              fail))))
 
-(define (get-args aprocs env succeed fail)
-  (if (null? aprocs)
+(define (get-args args env succeed fail)
+  (if (null? args)
       (succeed '() fail)
-      ((car aprocs)
+      ((car args)
        env
        (lambda (arg fail2)
          (get-args
-          (cdr aprocs)
+          (cdr args)
           env
           (lambda (args fail3)
             (succeed (cons arg args)
