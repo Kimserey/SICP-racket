@@ -1,10 +1,8 @@
 #lang racket
 (require compatibility/mlist)
 
-; ***********************************************************************************************
-; Evaluator - Analyze/Execute
-
-(define (eval exp env) ((analyze exp) env))
+(define (ambeval exp env succeed fail)
+  ((analyze exp) env succeed fail))
 
 (define (analyze exp)
   (cond [(self-evaluating? exp)
@@ -34,9 +32,6 @@
          (analyze-application exp)]
         [else
          (error "Unknown expression type: ANALYZE" exp)]))
-
-(define (ambeval exp env succeed fail)
-  ((analyze exp) env succeed fail))
 
 (define (analyze-self-evaluating exp) (lambda (env succeed fail) (succeed exp fail)))
 
@@ -91,11 +86,11 @@
 
 (define (analyze-let exp)
   (let ([vars (let-variables exp)]
-        [vals (mmap analyze (let-values exp))]
+        [aproc (mmap analyze (let-values exp))]
         [bproc (let-body exp)])
     (lambda (env succeed fail)
       (get-args
-       vals
+       aproc
        env
        (lambda (args fail2)
          (execute-application
