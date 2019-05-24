@@ -79,22 +79,22 @@
 
 (define (analyze-lambda exp)
   (let ([vars (lambda-parameters exp)]
-        [bproc (lambda-body exp)])
+        [body (lambda-body exp)])
     (lambda (env succeed fail)
-      (succeed (make-procedure vars bproc env)
+      (succeed (make-procedure vars body env)
                fail))))
 
 (define (analyze-let exp)
   (let ([vars (let-variables exp)]
         [aproc (mmap analyze (let-values exp))]
-        [bproc (let-body exp)])
+        [body (let-body exp)])
     (lambda (env succeed fail)
       (get-args
        aproc
        env
        (lambda (args fail2)
          (execute-application
-          (make-procedure vars bproc env)
+          (make-procedure vars body env)
           args
           succeed
           fail2))

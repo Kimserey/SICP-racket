@@ -11,6 +11,15 @@
 (define (require p)
   (if (not p) (amb)))
 
+; Pair example
+(define (pairs)
+  (let ([a (amb 1 2 3)]
+        [b (amb 1 2 3)])
+    (require (= (+ a b) 4))
+    (list a b)))
+
+(pairs)
+
 ; Baker, Cooper, Fletcher, Miller, and Smith live on different floors of an apartment house
 ; that contains only five floors.
 ; * Baker does not live on the top floor.
