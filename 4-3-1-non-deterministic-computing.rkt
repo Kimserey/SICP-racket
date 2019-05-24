@@ -517,3 +517,13 @@
       (display object)))
 
 (driver-loop)
+
+;(define (pairs)
+;  (define (require p)
+;    (if (not p) (amb)))
+;  (let ([a (amb 1 2 3)]
+;        [b (amb 1 2 3)])
+;    (require (= (+ a b) 4))
+;    (list a b)))
+;
+;(pairs)

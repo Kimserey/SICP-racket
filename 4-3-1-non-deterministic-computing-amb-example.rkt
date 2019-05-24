@@ -8,11 +8,11 @@
   (amb (car items)
        (an-element-of (cdr items))))
 
-(define (require p)
-  (if (not p) (amb)))
 
 ; Pair example
 (define (pairs)
+  (define (require p)
+    (if (not p) (amb)))
   (let ([a (amb 1 2 3)]
         [b (amb 1 2 3)])
     (require (= (+ a b) 4))
